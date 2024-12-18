@@ -138,15 +138,6 @@ export class GitService {
   }
 
   /**
-   * ファイルがステージされているか確認する
-   */
-  private async isFileStaged(file: string, workingDir: string): Promise<boolean> {
-    const status = await this.execGitWithError('status --porcelain', workingDir);
-    return this.parseGitStatus(status)
-      .some(({ path, isStaged }) => path === file && isStaged);
-  }
-
-  /**
    * ファイルをステージングエリアに追加する
    */
   async stageFile(file: string, customPath?: string): Promise<void> {
@@ -156,6 +147,15 @@ export class GitService {
       workingDir,
       `Failed to stage file: ${file}`
     );
+  }
+
+  /**
+   * ファイルがステージされているか確認する
+   */
+  private async isFileStaged(file: string, workingDir: string): Promise<boolean> {
+    const status = await this.execGitWithError('status --porcelain', workingDir);
+    return this.parseGitStatus(status)
+      .some(({ path, isStaged }) => path === file && isStaged);
   }
 
   /**
@@ -173,12 +173,10 @@ export class GitService {
       await this.execGitWithError(`checkout ${targetBranch}`, workingDir);
       await this.execGitWithError(`pull origin ${targetBranch}`, workingDir);
 
-      // ファイルのステージング状態を確認
+      // ファイルのステージング状態を確認し、必要に応じてステージング
       if (!(await this.isFileStaged(args.file, workingDir))) {
-        throw new McpError(
-          ErrorCode.InvalidRequest,
-          `File ${args.file} is not staged. Please stage the file using 'git add' or 'git rm' first.`
-        );
+        await this.stageFile(args.file, workingDir);
+        console.log(`Automatically staged file: ${args.file}`);
       }
 
       // コミットメッセージの生成とコミット実行
