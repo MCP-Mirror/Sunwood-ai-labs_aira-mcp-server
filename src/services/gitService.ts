@@ -5,7 +5,6 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
-
 export class GitService {
   private baseDir: string;
 
@@ -69,14 +68,18 @@ export class GitService {
         
         // ステータスの最初の2文字を取得
         const [index, working] = line.substring(0, 2);
-        const path = line.substring(3);
+        // パスからダブルクォートを削除
+        const path = line.substring(3).replace(/^"(.+)"$/, '$1').replace(/\\?"$/, '');
         
-        // インデックスがステージされているファイルのみを処理
-        if (index !== ' ' && index !== '?' && index !== '?') {
+        // インデックスまたはワーキングツリーの状態を確認
+        const status = index === ' ' ? working : index;
+        
+        // ステージされているファイルのみを処理（'?'以外）
+        if (status !== '?' && (index !== ' ' || working !== ' ')) {
           stagedFiles.push({
             path,
-            type: index,
-            isDeleted: index === 'D'
+            type: status,
+            isDeleted: status === 'D'
           });
         }
       }
@@ -90,25 +93,27 @@ export class GitService {
     }
   }
 
-  async createCommit(args: CreateCommitArgs): Promise<string> {
+  async createCommit(args: CreateCommitArgs & { path?: string }): Promise<string> {
     try {
       const targetBranch = args.branch || GITFLOW_CONFIG.branches.develop.name;
+      const workingDir = args.path || process.cwd();
       
-      // ブランチの存在確認
-      const branches = await this.execGit('branch');
+      // ブランチの存在確認と作成
+      const branches = await this.execGit('branch', workingDir);
       if (!branches.includes(targetBranch)) {
-        throw new McpError(
-          ErrorCode.InvalidRequest,
-          `Branch ${targetBranch} does not exist.`
-        );
+        // mainブランチからdevelopブランチを作成
+        await this.execGit('checkout main', workingDir);
+        await this.execGit(`checkout -b ${targetBranch}`, workingDir);
+        await this.execGit(`push -u origin ${targetBranch}`, workingDir);
+        console.log(`Created and pushed branch: ${targetBranch}`);
       }
 
       // ブランチの切り替えと最新化
-      await this.execGit(`checkout ${targetBranch}`);
-      await this.execGit(`pull origin ${targetBranch}`);
+      await this.execGit(`checkout ${targetBranch}`, workingDir);
+      await this.execGit(`pull origin ${targetBranch}`, workingDir);
 
       // ステージングされているファイルの確認
-      const status = await this.execGit('status --porcelain');
+      const status = await this.execGit('status --porcelain', workingDir);
       const isFileStaged = status.split('\n').some(line => {
         if (!line) return false;
         const [index] = line.substring(0, 2);
@@ -125,10 +130,10 @@ export class GitService {
 
       // コミットメッセージの生成とコミット実行
       const commitMessage = this.generateCommitMessage(args);
-      await this.execGit(`commit -m "${commitMessage}" -- "${args.file}"`);
+      await this.execGit(`commit -m "${commitMessage}" -- "${args.file}"`, workingDir);
 
       // リモートにプッシュ
-      await this.execGit(`push origin ${targetBranch}`);
+      await this.execGit(`push origin ${targetBranch}`, workingDir);
 
       return `[${targetBranch}] ${commitMessage}`;
     } catch (error) {
