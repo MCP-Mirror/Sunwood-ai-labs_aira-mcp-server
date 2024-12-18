@@ -15,9 +15,9 @@ export function createCreateCommitHandler(gitService: GitService): ToolHandler {
           type: "string",
           description: "コミット対象のファイルパス（1ファイルのみ指定可能）"
         },
-        branch: {
+        path: {
           type: "string",
-          description: "コミット先のブランチ名（指定がない場合はdevelop）"
+          description: "Gitリポジトリの絶対パス"
         },
         type: {
           type: "string",
@@ -44,19 +44,15 @@ export function createCreateCommitHandler(gitService: GitService): ToolHandler {
           type: "string",
           enum: ["ja", "en"],
           description: "コミットメッセージの言語（デフォルト: ja）"
-        },
-        path: {
-          type: "string",
-          description: "Gitリポジトリの絶対パス（指定がない場合は現在のディレクトリ）"
         }
       },
-      required: ["file", "type", "emoji", "title"]
+      required: ["file", "path", "type", "emoji", "title"]
     },
     handler: async (args) => {
       if (!isCreateCommitArgs(args)) {
         throw new McpError(
           ErrorCode.InvalidParams,
-          "Invalid arguments: file, type, emoji, and title are required"
+          "Invalid arguments: file, path, type, emoji, and title are required"
         );
       }
 
