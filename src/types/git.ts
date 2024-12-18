@@ -6,6 +6,21 @@ export interface StagedFile {
   isDeleted?: boolean;
 }
 
+export interface GitStatus {
+  path: string;
+  index: string;
+  working: string;
+  status: string;
+  isStaged: boolean;
+  isDeleted: boolean;
+}
+
+export interface GitCommandResult {
+  success: boolean;
+  output: string;
+  error?: string;
+}
+
 export interface CreateCommitArgs {
   file: string;  // 単一ファイルのみを受け付ける
   type: CommitType;
