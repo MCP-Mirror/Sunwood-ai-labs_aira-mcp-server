@@ -48,7 +48,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
     let response;
     switch (request.params.name) {
       case "get_staged_files":
-        response = await toolHandlers.handleGetStagedFiles();
+        response = await toolHandlers.handleGetStagedFiles(request.params.arguments);
         break;
 
       case "create_commit":

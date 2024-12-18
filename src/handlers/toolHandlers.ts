@@ -32,8 +32,8 @@ export class ToolHandlers {
     };
   }
 
-  async handleGetStagedFiles() {
-    return this.handlers.get('get_staged_files')!.handler();
+  async handleGetStagedFiles(args: unknown) {
+    return this.handlers.get('get_staged_files')!.handler(args);
   }
 
   async handleCreateCommit(args: unknown) {
