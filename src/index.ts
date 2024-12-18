@@ -69,6 +69,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
         response = await toolHandlers.handleListBranches();
         break;
 
+      case "stage_file":
+        response = await toolHandlers.handleStageFile(request.params.arguments);
+        break;
+
       default:
         throw new McpError(
           ErrorCode.MethodNotFound,

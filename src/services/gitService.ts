@@ -1,10 +1,11 @@
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { CreateCommitArgs, StagedFile } from '../types/git.js';
+import { CreateCommitArgs, StagedFile, GitCommandResult, GitStatus } from '../types/git.js';
 import { GITFLOW_CONFIG } from '../config/gitflowConfig.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
+
 export class GitService {
   private baseDir: string;
 
@@ -12,10 +13,13 @@ export class GitService {
     this.baseDir = baseDir;
   }
 
-  private async execGit(command: string, customPath?: string): Promise<string> {
+  /**
+   * Gitコマンドを実行する共通メソッド
+   */
+  private async execGit(command: string, customPath?: string): Promise<GitCommandResult> {
+    const workingDir = customPath || this.baseDir;
+    
     try {
-      const workingDir = customPath || this.baseDir;
-      
       // Gitリポジトリかどうかを確認
       try {
         await execAsync('git rev-parse --git-dir', { cwd: workingDir });
@@ -26,66 +30,93 @@ export class GitService {
         );
       }
 
-      const { stdout } = await execAsync(`git ${command}`, { cwd: workingDir });
-      return stdout.trim();
+      const { stdout, stderr } = await execAsync(`git ${command}`, { cwd: workingDir });
+      return {
+        success: true,
+        output: stdout.trim(),
+        error: stderr
+      };
     } catch (error: any) {
+      if (error instanceof McpError) throw error;
+      
+      return {
+        success: false,
+        output: '',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Gitコマンドを実行し、失敗時にMcpErrorをスローする
+   */
+  private async execGitWithError(command: string, customPath?: string, errorMessage?: string): Promise<string> {
+    const result = await this.execGit(command, customPath);
+    if (!result.success) {
       throw new McpError(
         ErrorCode.InternalError,
-        `Git command failed: ${error.message}`
+        errorMessage || `Git command failed: ${result.error}`
       );
     }
+    return result.output;
   }
 
+  /**
+   * Gitのステータス情報をパースする
+   */
+  private parseGitStatus(statusOutput: string): GitStatus[] {
+    return statusOutput.split('\n')
+      .filter(line => line.trim())
+      .map(line => {
+        const [index, working] = line.substring(0, 2);
+        const path = line.substring(3).replace(/^"(.+)"$/, '$1').replace(/\\?"$/, '');
+        const status = index === ' ' ? working : index;
+
+        return {
+          path,
+          index,
+          working,
+          status,
+          isStaged: index !== ' ' && index !== '?',
+          isDeleted: status === 'D'
+        };
+      });
+  }
+
+  /**
+   * コミットメッセージを生成する
+   */
   generateCommitMessage(args: CreateCommitArgs): string {
-    const { type, emoji, title, body, footer, language } = args;
-
-    const titleTemplate = language === 'en'
-      ? `${emoji} [${type}] ${title}`
-      : `${emoji} [${type}] ${title}`;
-
-    let message = titleTemplate;
+    const { type, emoji, title, body, footer, language = 'ja' } = args;
+    const titleTemplate = `${emoji} [${type}] ${title}`;
     
-    if (body) {
-      message += `\n\n${body}`;
-    }
+    const parts = [titleTemplate];
+    if (body) parts.push(body);
+    if (footer) parts.push(footer);
     
-    if (footer) {
-      message += `\n\n${footer}`;
-    }
-
-    return message;
+    return parts.join('\n\n');
   }
 
+  /**
+   * ステージされたファイルの一覧を取得する
+   */
   async getStagedFiles(path?: string): Promise<StagedFile[]> {
     try {
-      // git statusの出力を取得
-      const output = await this.execGit('status --porcelain', path);
-      const stagedFiles: StagedFile[] = [];
-      
-      // 各行を処理
-      for (const line of output.split('\n')) {
-        if (!line) continue;
-        
-        // ステータスの最初の2文字を取得
-        const [index, working] = line.substring(0, 2);
-        // パスからダブルクォートを削除
-        const path = line.substring(3).replace(/^"(.+)"$/, '$1').replace(/\\?"$/, '');
-        
-        // インデックスまたはワーキングツリーの状態を確認
-        const status = index === ' ' ? working : index;
-        
-        // ステージされているファイルのみを処理（'?'以外）
-        if (status !== '?' && (index !== ' ' || working !== ' ')) {
-          stagedFiles.push({
-            path,
-            type: status,
-            isDeleted: status === 'D'
-          });
-        }
-      }
+      const output = await this.execGitWithError(
+        'status --porcelain',
+        path,
+        'ステージされたファイルの取得に失敗しました'
+      );
 
-      return stagedFiles;
+      return this.parseGitStatus(output)
+        .filter(status => status.isStaged)
+        .map(({ path, status, isDeleted }) => ({
+          path,
+          type: status,
+          isDeleted
+        }));
     } catch (error) {
+      if (error instanceof McpError) throw error;
       throw new McpError(
         ErrorCode.InternalError,
         `Failed to get staged files: ${error}`
@@ -93,35 +124,57 @@ export class GitService {
     }
   }
 
+  /**
+   * ブランチの存在を確認し、必要に応じて作成する
+   */
+  private async ensureBranchExists(branch: string, workingDir: string): Promise<void> {
+    const branches = await this.execGitWithError('branch', workingDir);
+    if (!branches.includes(branch)) {
+      await this.execGitWithError('checkout main', workingDir);
+      await this.execGitWithError(`checkout -b ${branch}`, workingDir);
+      await this.execGitWithError(`push -u origin ${branch}`, workingDir);
+      console.log(`Created and pushed branch: ${branch}`);
+    }
+  }
+
+  /**
+   * ファイルがステージされているか確認する
+   */
+  private async isFileStaged(file: string, workingDir: string): Promise<boolean> {
+    const status = await this.execGitWithError('status --porcelain', workingDir);
+    return this.parseGitStatus(status)
+      .some(({ path, isStaged }) => path === file && isStaged);
+  }
+
+  /**
+   * ファイルをステージングエリアに追加する
+   */
+  async stageFile(file: string, customPath?: string): Promise<void> {
+    const workingDir = customPath || this.baseDir;
+    await this.execGitWithError(
+      `add "${file}"`,
+      workingDir,
+      `Failed to stage file: ${file}`
+    );
+  }
+
+  /**
+   * コミットを作成する
+   */
   async createCommit(args: CreateCommitArgs & { path?: string }): Promise<string> {
     try {
       const targetBranch = args.branch || GITFLOW_CONFIG.branches.develop.name;
       const workingDir = args.path || process.cwd();
-      
+
       // ブランチの存在確認と作成
-      const branches = await this.execGit('branch', workingDir);
-      if (!branches.includes(targetBranch)) {
-        // mainブランチからdevelopブランチを作成
-        await this.execGit('checkout main', workingDir);
-        await this.execGit(`checkout -b ${targetBranch}`, workingDir);
-        await this.execGit(`push -u origin ${targetBranch}`, workingDir);
-        console.log(`Created and pushed branch: ${targetBranch}`);
-      }
+      await this.ensureBranchExists(targetBranch, workingDir);
 
       // ブランチの切り替えと最新化
-      await this.execGit(`checkout ${targetBranch}`, workingDir);
-      await this.execGit(`pull origin ${targetBranch}`, workingDir);
+      await this.execGitWithError(`checkout ${targetBranch}`, workingDir);
+      await this.execGitWithError(`pull origin ${targetBranch}`, workingDir);
 
-      // ステージングされているファイルの確認
-      const status = await this.execGit('status --porcelain', workingDir);
-      const isFileStaged = status.split('\n').some(line => {
-        if (!line) return false;
-        const [index] = line.substring(0, 2);
-        const path = line.substring(3);
-        return path === args.file && index !== ' ' && index !== '?';
-      });
-
-      if (!isFileStaged) {
+      // ファイルのステージング状態を確認
+      if (!(await this.isFileStaged(args.file, workingDir))) {
         throw new McpError(
           ErrorCode.InvalidRequest,
           `File ${args.file} is not staged. Please stage the file using 'git add' or 'git rm' first.`
@@ -130,16 +183,17 @@ export class GitService {
 
       // コミットメッセージの生成とコミット実行
       const commitMessage = this.generateCommitMessage(args);
-      await this.execGit(`commit -m "${commitMessage}" -- "${args.file}"`, workingDir);
+      await this.execGitWithError(
+        `commit -m "${commitMessage}" -- "${args.file}"`,
+        workingDir
+      );
 
       // リモートにプッシュ
-      await this.execGit(`push origin ${targetBranch}`, workingDir);
+      await this.execGitWithError(`push origin ${targetBranch}`, workingDir);
 
       return `[${targetBranch}] ${commitMessage}`;
     } catch (error) {
-      if (error instanceof McpError) {
-        throw error;
-      }
+      if (error instanceof McpError) throw error;
       throw new McpError(
         ErrorCode.InternalError,
         `Failed to create commit: ${error}`
