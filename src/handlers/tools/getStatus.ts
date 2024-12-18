@@ -11,15 +11,21 @@ export function createGetStatusHandler(gitService: GitService): ToolHandler {
       properties: {
         path: {
           type: "string",
-          description: "Gitリポジトリの絶対パス（指定がない場合は現在のディレクトリ）"
+          description: "Gitリポジトリの絶対パス"
         }
       },
-      required: []
+      required: ["path"]
     },
     handler: async (args) => {
       try {
-        const path = args && typeof args === 'object' && 'path' in args ? args.path as string : undefined;
-        const status = await gitService.getStatus(path);
+        if (!args || typeof args !== 'object' || !('path' in args) || typeof args.path !== 'string') {
+          throw new McpError(
+            ErrorCode.InvalidParams,
+            "path parameter is required and must be a string"
+          );
+        }
+
+        const status = await gitService.getStatus(args.path);
         return {
           content: [{
             type: "text",
