@@ -23,6 +23,7 @@ export interface GitCommandResult {
 
 export interface CreateCommitArgs {
   file: string;  // 単一ファイルのみを受け付ける
+  path: string;  // Gitリポジトリの絶対パス
   type: CommitType;
   emoji: string;
   title: string;
@@ -30,7 +31,6 @@ export interface CreateCommitArgs {
   footer?: string;
   language?: 'ja' | 'en';
   branch?: string;
-  path?: string;  // Gitリポジトリのパス（指定がない場合は現在のディレクトリ）
 }
 
 export function isCreateCommitArgs(obj: unknown): obj is CreateCommitArgs {
@@ -38,13 +38,13 @@ export function isCreateCommitArgs(obj: unknown): obj is CreateCommitArgs {
   const args = obj as Record<string, unknown>;
   return (
     typeof args.file === 'string' &&
+    typeof args.path === 'string' &&
     typeof args.type === 'string' &&
     typeof args.emoji === 'string' &&
     typeof args.title === 'string' &&
     (args.body === undefined || typeof args.body === 'string') &&
     (args.footer === undefined || typeof args.footer === 'string') &&
     (args.language === undefined || ['ja', 'en'].includes(args.language as string)) &&
-    (args.branch === undefined || typeof args.branch === 'string') &&
-    (args.path === undefined || typeof args.path === 'string')
+    (args.branch === undefined || typeof args.branch === 'string')
   );
 }
