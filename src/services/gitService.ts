@@ -125,15 +125,49 @@ export class GitService {
   }
 
   /**
+   * リモートブランチの存在を確認する
+   */
+  private async doesRemoteBranchExist(branch: string, workingDir: string): Promise<boolean> {
+    try {
+      await this.execGitWithError(`ls-remote --heads origin ${branch}`, workingDir);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
    * ブランチの存在を確認し、必要に応じて作成する
    */
   private async ensureBranchExists(branch: string, workingDir: string): Promise<void> {
     const branches = await this.execGitWithError('branch', workingDir);
+    const remoteBranchExists = await this.doesRemoteBranchExist(branch, workingDir);
+
     if (!branches.includes(branch)) {
-      await this.execGitWithError('checkout main', workingDir);
-      await this.execGitWithError(`checkout -b ${branch}`, workingDir);
-      await this.execGitWithError(`push -u origin ${branch}`, workingDir);
-      console.log(`Created and pushed branch: ${branch}`);
+      if (remoteBranchExists) {
+        // リモートブランチが存在する場合は、それをチェックアウト
+        await this.execGitWithError(`checkout -b ${branch} origin/${branch}`, workingDir);
+        console.log(`Checked out existing remote branch: ${branch}`);
+      } else {
+        // リモートブランチが存在しない場合は、新規作成
+        await this.execGitWithError('checkout main', workingDir);
+        await this.execGitWithError(`checkout -b ${branch}`, workingDir);
+        try {
+          await this.execGitWithError(`push -u origin ${branch}`, workingDir);
+          console.log(`Created and pushed new branch: ${branch}`);
+        } catch (error) {
+          // pushに失敗した場合でもローカルブランチは作成
+          console.log(`Created local branch: ${branch} (push failed)`);
+        }
+      }
+    } else if (!remoteBranchExists) {
+      // ローカルブランチは存在するがリモートブランチが存在しない場合
+      try {
+        await this.execGitWithError(`push -u origin ${branch}`, workingDir);
+        console.log(`Pushed existing local branch: ${branch}`);
+      } catch (error) {
+        console.log(`Local branch exists: ${branch} (push failed)`);
+      }
     }
   }
 
@@ -171,7 +205,11 @@ export class GitService {
 
       // ブランチの切り替えと最新化
       await this.execGitWithError(`checkout ${targetBranch}`, workingDir);
-      await this.execGitWithError(`pull origin ${targetBranch}`, workingDir);
+      try {
+        await this.execGitWithError(`pull origin ${targetBranch}`, workingDir);
+      } catch (error) {
+        console.log(`Warning: Failed to pull from origin/${targetBranch}`);
+      }
 
       // ファイルのステージング状態を確認し、必要に応じてステージング
       if (!(await this.isFileStaged(args.file, workingDir))) {
@@ -187,7 +225,11 @@ export class GitService {
       );
 
       // リモートにプッシュ
-      await this.execGitWithError(`push origin ${targetBranch}`, workingDir);
+      try {
+        await this.execGitWithError(`push origin ${targetBranch}`, workingDir);
+      } catch (error) {
+        console.log(`Warning: Failed to push to origin/${targetBranch}`);
+      }
 
       return `[${targetBranch}] ${commitMessage}`;
     } catch (error) {
