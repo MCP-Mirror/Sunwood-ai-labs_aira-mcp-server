@@ -32,28 +32,22 @@ export class GitStatusManager {
   }
 
   /**
-   * ステージされたファイルの一覧を取得する
+   * Gitのステータス情報を取得する
    */
-  async getStagedFiles(path?: string): Promise<StagedFile[]> {
+  async getStatus(path?: string): Promise<GitStatus[]> {
     try {
       const output = await this.gitExecutor.execGitWithError(
         'status --porcelain',
         path,
-        'ステージされたファイルの取得に失敗しました'
+        'ステータス情報の取得に失敗しました'
       );
 
-      return this.parseGitStatus(output)
-        .filter(status => status.isStaged)
-        .map(({ path, status, isDeleted }) => ({
-          path,
-          type: status,
-          isDeleted
-        }));
+      return this.parseGitStatus(output);
     } catch (error) {
       if (error instanceof McpError) throw error;
       throw new McpError(
         ErrorCode.InternalError,
-        `Failed to get staged files: ${error}`
+        `Failed to get git status: ${error}`
       );
     }
   }
