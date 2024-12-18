@@ -45,8 +45,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
   try {
     let response;
     switch (request.params.name) {
-      case "get_staged_files":
-        response = await toolHandlers.handleGetStagedFiles(request.params.arguments);
+      case "get_status":
+        response = await toolHandlers.handleGetStatus(request.params.arguments);
         break;
 
       case "create_commit":
@@ -67,10 +67,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
 
       case "list_branches":
         response = await toolHandlers.handleListBranches();
-        break;
-
-      case "stage_file":
-        response = await toolHandlers.handleStageFile(request.params.arguments);
         break;
 
       default:
