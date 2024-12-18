@@ -13,9 +13,21 @@ export class GitService {
     this.baseDir = baseDir;
   }
 
-  private async execGit(command: string): Promise<string> {
+  private async execGit(command: string, customPath?: string): Promise<string> {
     try {
-      const { stdout } = await execAsync(`git ${command}`, { cwd: this.baseDir });
+      const workingDir = customPath || this.baseDir;
+      
+      // Gitリポジトリかどうかを確認
+      try {
+        await execAsync('git rev-parse --git-dir', { cwd: workingDir });
+      } catch (error) {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `指定されたパス '${workingDir}' はGitリポジトリではありません。`
+        );
+      }
+
+      const { stdout } = await execAsync(`git ${command}`, { cwd: workingDir });
       return stdout.trim();
     } catch (error: any) {
       throw new McpError(
@@ -45,10 +57,10 @@ export class GitService {
     return message;
   }
 
-  async getStagedFiles(): Promise<StagedFile[]> {
+  async getStagedFiles(path?: string): Promise<StagedFile[]> {
     try {
       // git statusの出力を取得
-      const output = await this.execGit('status --porcelain');
+      const output = await this.execGit('status --porcelain', path);
       const stagedFiles: StagedFile[] = [];
       
       // 各行を処理

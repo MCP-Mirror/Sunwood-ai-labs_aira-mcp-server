@@ -8,12 +8,18 @@ export function createGetStagedFilesHandler(gitService: GitService): ToolHandler
     description: "ステージされたファイルの一覧を取得します",
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        path: {
+          type: "string",
+          description: "Gitリポジトリの絶対パス（指定がない場合は現在のディレクトリ）"
+        }
+      },
       required: []
     },
-    handler: async () => {
+    handler: async (args) => {
       try {
-        const stagedFiles = await gitService.getStagedFiles();
+        const path = args && typeof args === 'object' && 'path' in args ? args.path as string : undefined;
+        const stagedFiles = await gitService.getStagedFiles(path);
         return {
           content: [{
             type: "text",
