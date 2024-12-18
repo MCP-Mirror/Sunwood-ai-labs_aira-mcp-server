@@ -16,6 +16,8 @@ This is a TypeScript-based MCP server that implements a simple notes system. It 
 - Gitflow initialization and management
 - Branch operations (create, merge, list)
 
+<a href="https://glama.ai/mcp/servers/dwd1o4okcw"><img width="380" height="200" src="https://glama.ai/mcp/servers/dwd1o4okcw/badge" alt="aira-mcp-server MCP server" /></a>
+
 ## 🚀 Features
 
 - 📝 Conventional commit message generation
