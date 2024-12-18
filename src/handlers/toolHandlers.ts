@@ -7,6 +7,7 @@ import { createInitGitflowHandler } from './tools/initGitflow.js';
 import { createCreateBranchHandler } from './tools/createBranch.js';
 import { createMergeBranchHandler } from './tools/mergeBranch.js';
 import { createListBranchesHandler } from './tools/listBranches.js';
+import { createStageFileHandler } from './tools/stageFile.js';
 
 export class ToolHandlers {
   private handlers: Map<string, ToolHandler>;
@@ -18,7 +19,8 @@ export class ToolHandlers {
       ['init_gitflow', createInitGitflowHandler(gitflowService)],
       ['create_branch', createCreateBranchHandler(gitflowService)],
       ['merge_branch', createMergeBranchHandler(gitflowService)],
-      ['list_branches', createListBranchesHandler(gitflowService)]
+      ['list_branches', createListBranchesHandler(gitflowService)],
+      ['stage_file', createStageFileHandler(gitService)]
     ]);
   }
 
@@ -54,5 +56,9 @@ export class ToolHandlers {
 
   async handleListBranches() {
     return this.handlers.get('list_branches')!.handler();
+  }
+
+  async handleStageFile(args: unknown) {
+    return this.handlers.get('stage_file')!.handler(args);
   }
 }
