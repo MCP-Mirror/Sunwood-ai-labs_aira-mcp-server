@@ -1,40 +1,43 @@
-import { simpleGit, SimpleGit } from 'simple-git';
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { CreateCommitArgs, StagedFile } from '../types/git.js';
 import { GITFLOW_CONFIG } from '../config/gitflowConfig.js';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 export class GitService {
-  private git: SimpleGit;
+  private baseDir: string;
 
   constructor(baseDir: string) {
+    this.baseDir = baseDir;
+  }
+
+  private async execGit(command: string): Promise<string> {
     try {
-      this.git = simpleGit({
-        baseDir,
-        binary: 'git',
-        maxConcurrentProcesses: 1,
-      });
-    } catch (error) {
-      console.error('Failed to initialize git:', error);
-      throw error;
+      const { stdout } = await execAsync(`git ${command}`, { cwd: this.baseDir });
+      return stdout.trim();
+    } catch (error: any) {
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Git command failed: ${error.message}`
+      );
     }
   }
 
   generateCommitMessage(args: CreateCommitArgs): string {
     const { type, emoji, title, body, footer, language } = args;
 
-    // 新しいフォーマットでタイトルを生成
     const titleTemplate = language === 'en'
       ? `${emoji} [${type}] ${title}`
       : `${emoji} [${type}] ${title}`;
 
     let message = titleTemplate;
     
-    // 本文がある場合は、2行の改行を入れてから追加
     if (body) {
       message += `\n\n${body}`;
     }
     
-    // フッターがある場合は、2行の改行を入れてから追加
     if (footer) {
       message += `\n\n${footer}`;
     }
@@ -44,18 +47,24 @@ export class GitService {
 
   async getStagedFiles(): Promise<StagedFile[]> {
     try {
-      const status = await this.git.status();
+      // git statusの出力を取得
+      const output = await this.execGit('status --porcelain');
       const stagedFiles: StagedFile[] = [];
       
-      // 変更されたファイルと削除されたファイルの両方を処理
-      for (const file of status.files) {
-        // インデックスの状態をチェック
-        // 'D' = deleted, 'A' = added, 'M' = modified
-        if (status.staged.includes(file.path) || file.index === 'D') {
+      // 各行を処理
+      for (const line of output.split('\n')) {
+        if (!line) continue;
+        
+        // ステータスの最初の2文字を取得
+        const [index, working] = line.substring(0, 2);
+        const path = line.substring(3);
+        
+        // インデックスがステージされているファイルのみを処理
+        if (index !== ' ' && index !== '?' && index !== '?') {
           stagedFiles.push({
-            path: file.path,
-            type: file.index || '?',
-            isDeleted: file.index === 'D'
+            path,
+            type: index,
+            isDeleted: index === 'D'
           });
         }
       }
@@ -71,12 +80,11 @@ export class GitService {
 
   async createCommit(args: CreateCommitArgs): Promise<string> {
     try {
-      // 指定されたブランチに切り替え（指定がない場合はdevelopを使用）
       const targetBranch = args.branch || GITFLOW_CONFIG.branches.develop.name;
       
       // ブランチの存在確認
-      const branches = await this.git.branch();
-      if (!branches.all.includes(targetBranch)) {
+      const branches = await this.execGit('branch');
+      if (!branches.includes(targetBranch)) {
         throw new McpError(
           ErrorCode.InvalidRequest,
           `Branch ${targetBranch} does not exist.`
@@ -84,14 +92,17 @@ export class GitService {
       }
 
       // ブランチの切り替えと最新化
-      await this.git.checkout(targetBranch);
-      await this.git.pull('origin', targetBranch);
+      await this.execGit(`checkout ${targetBranch}`);
+      await this.execGit(`pull origin ${targetBranch}`);
 
       // ステージングされているファイルの確認
-      const status = await this.git.status();
-      const isFileStaged = status.files.some(file => 
-        file.path === args.file && (status.staged.includes(file.path) || file.index === 'D')
-      );
+      const status = await this.execGit('status --porcelain');
+      const isFileStaged = status.split('\n').some(line => {
+        if (!line) return false;
+        const [index] = line.substring(0, 2);
+        const path = line.substring(3);
+        return path === args.file && index !== ' ' && index !== '?';
+      });
 
       if (!isFileStaged) {
         throw new McpError(
@@ -102,12 +113,10 @@ export class GitService {
 
       // コミットメッセージの生成とコミット実行
       const commitMessage = this.generateCommitMessage(args);
-      
-      // 指定されたファイルのみをコミット
-      await this.git.commit(commitMessage, ['--', args.file]);
+      await this.execGit(`commit -m "${commitMessage}" -- "${args.file}"`);
 
       // リモートにプッシュ
-      await this.git.push('origin', targetBranch);
+      await this.execGit(`push origin ${targetBranch}`);
 
       return `[${targetBranch}] ${commitMessage}`;
     } catch (error) {

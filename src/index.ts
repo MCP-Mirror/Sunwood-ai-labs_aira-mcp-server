@@ -11,7 +11,7 @@ import { GitService } from './services/gitService.js';
 import { GitflowService } from './services/gitflowService.js';
 import { ToolHandlers } from './handlers/toolHandlers.js';
 
-const GIT_BASE_DIR = "C:/Prj/GammaExperiment";
+const GIT_BASE_DIR = process.cwd();
 
 /**
  * MCPサーバーのインスタンスを作成
