@@ -12,10 +12,10 @@ export class GitService {
   }
 
   /**
-   * ステージされたファイルの一覧を取得する
+   * Gitのステータス情報を取得する
    */
-  async getStagedFiles(path?: string) {
-    return this.statusManager.getStagedFiles(path);
+  async getStatus(path?: string) {
+    return this.statusManager.getStatus(path);
   }
 
   /**
