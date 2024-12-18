@@ -44,6 +44,10 @@ export function createCreateCommitHandler(gitService: GitService): ToolHandler {
           type: "string",
           enum: ["ja", "en"],
           description: "コミットメッセージの言語（デフォルト: ja）"
+        },
+        path: {
+          type: "string",
+          description: "Gitリポジトリの絶対パス（指定がない場合は現在のディレクトリ）"
         }
       },
       required: ["file", "type", "emoji", "title"]

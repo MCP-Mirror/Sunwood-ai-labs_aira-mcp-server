@@ -11,8 +11,6 @@ import { GitService } from './services/gitService.js';
 import { GitflowService } from './services/gitflowService.js';
 import { ToolHandlers } from './handlers/toolHandlers.js';
 
-const GIT_BASE_DIR = process.cwd();
-
 /**
  * MCPサーバーのインスタンスを作成
  */
@@ -29,8 +27,8 @@ const server = new Server(
 );
 
 // サービスとハンドラーの初期化
-const gitService = new GitService(GIT_BASE_DIR);
-const gitflowService = new GitflowService(GIT_BASE_DIR);
+const gitService = new GitService(process.cwd());
+const gitflowService = new GitflowService(process.cwd());
 const toolHandlers = new ToolHandlers(gitService, gitflowService);
 
 /**

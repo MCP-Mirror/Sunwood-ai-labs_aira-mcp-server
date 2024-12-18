@@ -15,6 +15,7 @@ export interface CreateCommitArgs {
   footer?: string;
   language?: 'ja' | 'en';
   branch?: string;
+  path?: string;  // Gitリポジトリのパス（指定がない場合は現在のディレクトリ）
 }
 
 export function isCreateCommitArgs(obj: unknown): obj is CreateCommitArgs {
@@ -28,6 +29,7 @@ export function isCreateCommitArgs(obj: unknown): obj is CreateCommitArgs {
     (args.body === undefined || typeof args.body === 'string') &&
     (args.footer === undefined || typeof args.footer === 'string') &&
     (args.language === undefined || ['ja', 'en'].includes(args.language as string)) &&
-    (args.branch === undefined || typeof args.branch === 'string')
+    (args.branch === undefined || typeof args.branch === 'string') &&
+    (args.path === undefined || typeof args.path === 'string')
   );
 }
