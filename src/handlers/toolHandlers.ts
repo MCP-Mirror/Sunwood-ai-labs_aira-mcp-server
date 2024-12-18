@@ -1,26 +1,24 @@
 import { GitService } from '../services/gitService.js';
 import { GitflowService } from '../services/gitflowService.js';
 import { ToolHandler } from '../types/handlers.js';
-import { createGetStagedFilesHandler } from './tools/getStagedFiles.js';
+import { createGetStatusHandler } from './tools/getStatus.js';
 import { createCreateCommitHandler } from './tools/createCommit.js';
 import { createInitGitflowHandler } from './tools/initGitflow.js';
 import { createCreateBranchHandler } from './tools/createBranch.js';
 import { createMergeBranchHandler } from './tools/mergeBranch.js';
 import { createListBranchesHandler } from './tools/listBranches.js';
-import { createStageFileHandler } from './tools/stageFile.js';
 
 export class ToolHandlers {
   private handlers: Map<string, ToolHandler>;
 
   constructor(gitService: GitService, gitflowService: GitflowService) {
     this.handlers = new Map([
-      ['get_staged_files', createGetStagedFilesHandler(gitService)],
+      ['get_status', createGetStatusHandler(gitService)],
       ['create_commit', createCreateCommitHandler(gitService)],
       ['init_gitflow', createInitGitflowHandler(gitflowService)],
       ['create_branch', createCreateBranchHandler(gitflowService)],
       ['merge_branch', createMergeBranchHandler(gitflowService)],
-      ['list_branches', createListBranchesHandler(gitflowService)],
-      ['stage_file', createStageFileHandler(gitService)]
+      ['list_branches', createListBranchesHandler(gitflowService)]
     ]);
   }
 
@@ -34,8 +32,8 @@ export class ToolHandlers {
     };
   }
 
-  async handleGetStagedFiles(args: unknown) {
-    return this.handlers.get('get_staged_files')!.handler(args);
+  async handleGetStatus(args: unknown) {
+    return this.handlers.get('get_status')!.handler(args);
   }
 
   async handleCreateCommit(args: unknown) {
@@ -56,9 +54,5 @@ export class ToolHandlers {
 
   async handleListBranches() {
     return this.handlers.get('list_branches')!.handler();
-  }
-
-  async handleStageFile(args: unknown) {
-    return this.handlers.get('stage_file')!.handler(args);
   }
 }
