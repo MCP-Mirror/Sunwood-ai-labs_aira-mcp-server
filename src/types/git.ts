@@ -31,6 +31,7 @@ export interface CreateCommitArgs {
   footer?: string;
   language?: 'ja' | 'en';
   branch?: string;
+  issueNumber?: number;  // GitHub Issue番号（オプション）
 }
 
 export function isCreateCommitArgs(obj: unknown): obj is CreateCommitArgs {
@@ -45,6 +46,7 @@ export function isCreateCommitArgs(obj: unknown): obj is CreateCommitArgs {
     (args.body === undefined || typeof args.body === 'string') &&
     (args.footer === undefined || typeof args.footer === 'string') &&
     (args.language === undefined || ['ja', 'en'].includes(args.language as string)) &&
-    (args.branch === undefined || typeof args.branch === 'string')
+    (args.branch === undefined || typeof args.branch === 'string') &&
+    (args.issueNumber === undefined || typeof args.issueNumber === 'number')
   );
 }
