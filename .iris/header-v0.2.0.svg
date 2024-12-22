@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="200" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 背景グラデーション -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2C0735">
+        <animate attributeName="stop-color" values="#2C0735;#4A1259;#6B1B7F;#4A1259;#2C0735" dur="8s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="50%" style="stop-color:#4A1259">
+        <animate attributeName="stop-color" values="#4A1259;#6B1B7F;#8024A0;#6B1B7F;#4A1259" dur="8s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%" style="stop-color:#6B1B7F">
+        <animate attributeName="stop-color" values="#6B1B7F;#8024A0;#9B2CC1;#8024A0;#6B1B7F" dur="8s" repeatCount="indefinite"/>
+      </stop>
+    </linearGradient>
+
+    <!-- テキストグラデーション -->
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FFB6C1">
+        <animate attributeName="stop-color" values="#FFB6C1;#E6E6FA;#FFB6C1" dur="4s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%" style="stop-color:#E6E6FA">
+        <animate attributeName="stop-color" values="#E6E6FA;#FFB6C1;#E6E6FA" dur="4s" repeatCount="indefinite"/>
+      </stop>
+    </linearGradient>
+
+    <!-- 魔法の輝き効果 -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- 星のパターン -->
+    <pattern id="stars" x="0" y="0" width="50" height="50" patternUnits="userSpaceOnUse">
+      <path d="M25,10 L27,17 L34,17 L28,22 L30,29 L25,25 L20,29 L22,22 L16,17 L23,17 Z" fill="#E6E6FA" opacity="0.5">
+        <animate attributeName="opacity" values="0.5;0.1;0.5" dur="3s" repeatCount="indefinite"/>
+      </path>
+    </pattern>
+  </defs>
+
+  <!-- 角丸の背景 -->
+  <rect width="100%" height="100%" rx="15" ry="15" fill="url(#bgGradient)"/>
+  
+  <!-- 星のパターンレイヤー -->
+  <rect width="100%" height="100%" rx="15" ry="15" fill="url(#stars)" opacity="0.3"/>
+
+  <!-- 装飾的な魔法の円 -->
+  <g transform="translate(400,100)" filter="url(#glow)">
+    <circle r="60" fill="none" stroke="#B490C0" stroke-width="2" opacity="0.3">
+      <animate attributeName="r" values="60;65;60" dur="4s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.3;0.1;0.3" dur="4s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="45" fill="none" stroke="#B490C0" stroke-width="2" opacity="0.4">
+      <animate attributeName="r" values="45;50;45" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.4;0.2;0.4" dur="3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- 魔女のシルエットと魔法の杖 -->
+  <g transform="translate(100,50)" fill="#FFFFFF" filter="url(#glow)">
+    <!-- 魔女の帽子 -->
+    <path d="M50,20 Q60,10 70,20 L80,40 L20,40 L30,20 Q40,10 50,20" opacity="0.8">
+      <animate attributeName="d" values="M50,20 Q60,10 70,20 L80,40 L20,40 L30,20 Q40,10 50,20;M50,15 Q60,5 70,15 L85,35 L15,35 L30,15 Q40,5 50,15;M50,20 Q60,10 70,20 L80,40 L20,40 L30,20 Q40,10 50,20" dur="3s" repeatCount="indefinite"/>
+    </path>
+    <!-- 魔法の杖 -->
+    <path d="M90,30 L120,20 L125,25 L95,35 Z" opacity="0.9">
+      <animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>
+    </path>
+    <!-- 魔法の星 -->
+    <path d="M120,20 L123,17 L126,20 L123,23 Z" fill="#FFB6C1">
+      <animate attributeName="transform" attributeType="XML" type="rotate" from="0 123 20" to="360 123 20" dur="3s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <!-- Gitのシンボル -->
+  <g transform="translate(600,50)" fill="#FFFFFF" filter="url(#glow)">
+    <!-- メインの六角形 -->
+    <path d="M40,40 L60,40 L70,55 L60,70 L40,70 L30,55 Z" opacity="0.8">
+      <animate attributeName="transform" attributeType="XML" type="rotate" from="0 50 55" to="360 50 55" dur="10s" repeatCount="indefinite"/>
+    </path>
+    <!-- ブランチライン -->
+    <path d="M45,35 Q50,45 55,35 M45,75 Q50,65 55,75" stroke="#FFFFFF" fill="none" stroke-width="2">
+      <animate attributeName="d" values="M45,35 Q50,45 55,35 M45,75 Q50,65 55,75;M45,40 Q50,50 55,40 M45,70 Q50,60 55,70;M45,35 Q50,45 55,35 M45,75 Q50,65 55,75" dur="4s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <!-- プロジェクト名 -->
+  <text x="400" y="120" font-family="Arial, sans-serif" font-size="48" fill="url(#textGradient)" text-anchor="middle" filter="url(#glow)">
+    AIRA MCP Server
+    <animate attributeName="opacity" values="1;0.8;1" dur="3s" repeatCount="indefinite"/>
+  </text>
+  
+  <!-- バージョン -->
+  <text x="400" y="160" font-family="Arial, sans-serif" font-size="24" fill="url(#textGradient)" text-anchor="middle" filter="url(#glow)">
+    Version 0.2.0
+    <animate attributeName="opacity" values="1;0.8;1" dur="3s" repeatCount="indefinite"/>
+  </text>
+  
+  <!-- サブタイトル -->
+  <text x="400" y="185" font-family="Arial, sans-serif" font-size="20" fill="url(#textGradient)" text-anchor="middle" opacity="0.8">
+    Enchanting Git Commits with Magic
+    <animate attributeName="opacity" values="0.8;0.4;0.8" dur="4s" repeatCount="indefinite"/>
+  </text>
+
+  <!-- 装飾的な魔法の粒子 -->
+  <g filter="url(#glow)">
+    <circle cx="200" cy="150" r="2" fill="#FFB6C1">
+      <animate attributeName="cy" values="150;140;150" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0.5;1" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="600" cy="50" r="2" fill="#E6E6FA">
+      <animate attributeName="cy" values="50;60;50" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0.5;1" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="300" cy="100" r="2" fill="#B490C0">
+      <animate attributeName="cy" values="100;90;100" dur="2.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0.5;1" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+</svg>
