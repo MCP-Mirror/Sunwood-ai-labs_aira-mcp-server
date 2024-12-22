@@ -8,7 +8,6 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 import { GitService } from './services/gitService.js';
-import { GitflowService } from './services/gitflowService.js';
 import { ToolHandlers } from './handlers/toolHandlers.js';
 
 /**
@@ -28,8 +27,7 @@ const server = new Server(
 
 // サービスとハンドラーの初期化
 const gitService = new GitService(process.cwd());
-const gitflowService = new GitflowService(process.cwd());
-const toolHandlers = new ToolHandlers(gitService, gitflowService);
+const toolHandlers = new ToolHandlers(gitService);
 
 /**
  * 利用可能なツールの一覧を返すハンドラー
@@ -51,22 +49,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
 
       case "create_commit":
         response = await toolHandlers.handleCreateCommit(request.params.arguments);
-        break;
-
-      case "init_gitflow":
-        response = await toolHandlers.handleInitGitflow();
-        break;
-
-      case "create_branch":
-        response = await toolHandlers.handleCreateBranch(request.params.arguments);
-        break;
-
-      case "merge_branch":
-        response = await toolHandlers.handleMergeBranch(request.params.arguments);
-        break;
-
-      case "list_branches":
-        response = await toolHandlers.handleListBranches();
         break;
 
       default:
