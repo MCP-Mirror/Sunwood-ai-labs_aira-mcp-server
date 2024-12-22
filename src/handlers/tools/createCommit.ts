@@ -44,6 +44,10 @@ export function createCreateCommitHandler(gitService: GitService): ToolHandler {
           type: "string",
           enum: ["ja", "en"],
           description: "コミットメッセージの言語（デフォルト: ja）"
+        },
+        issueNumber: {
+          type: "number",
+          description: "GitHub Issue番号（オプション）"
         }
       },
       required: ["file", "path", "type", "emoji", "title"]
